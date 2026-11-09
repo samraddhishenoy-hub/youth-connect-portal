@@ -1,1 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Youth Connect Portal</title>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+    <!-- Header Navigation -->
+    <header class="bg-blue-600 text-white shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-blue-600 p-2 rounded-lg font-bold text-xl">YC</div>
+                <h1 class="text-xl font-bold">Youth Connect Portal</h1>
+            </div>
+            <nav class="flex space-x-2">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-3 py-2 rounded-md text-sm font-medium bg-blue-700">Dashboard</button>
+                <button onclick="switchTab('skills')" id="nav-skills" class="tab-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-500">Skills</button>
+                <button onclick="switchTab('internships')" id="nav-internships" class="tab-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-500">Internships</button>
+                <button onclick="switchTab('jobs')" id="nav-jobs" class="tab-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-500">Jobs</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-8">
+        
+        <!-- Search filters -->
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <input type="text" id="globalSearch" onkeyup="filterCards()" placeholder="Search options..." class="w-full md:w-96 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <!-- ================= DASHBOARD TAB ================= -->
+        <section id="dashboard" class="tab-content active space-y-8">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white">
+                <h2 class="text-3xl font-bold mb-2">Empowering Your Tomorrow</h2>
+                <p class="mb-4">Explore vocational routes, internships, and dynamic employment programs loaded from our database core API.</p>
+                <button onclick="switchTab('skills')" class="bg-white text-blue-700 font-semibold px-4 py-2 rounded-lg">Browse Programs</button>
+            </div>
+        </section>
+
+        <!-- ================= SKILLS TAB ================= -->
+        <section id="skills" class="tab-content space-y-6">
+            <h2 class="text-2xl font-bold">Skills Training & Vocational Frameworks</h2>
+            <div id="skills-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- ================= INTERNSHIPS TAB ================= -->
+        <section id="internships" class="tab-content space-y-6">
+            <h2 class="text-2xl font-bold">Available Placement Internships</h2>
+            <div id="internships-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- ================= JOBS TAB ================= -->
+        <section id="jobs" class="tab-content space-y-6">
+            <h2 class="text-2xl font-bold">Local Employment Channels</h2>
+            <div id="jobs-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+    </main>
+
+    <!-- ================= SUBMIT APPLICATION MODAL ================= -->
+    <div id="applyModal" class="hidden fixed inset-0 bg-black/50 z-50 justify-center items-center p-4">
+        <form onsubmit="submitForm(event)" class="bg-white rounded-xl p-6 max-w-md w-full space-y-4">
+            <h3 class="text-lg font-bold text-gray-900">Application Pipeline</h3>
+            <input type="text" id="modalTargetName" readonly class="w-full bg-gray-100 p-2 border rounded font-semibold text-sm">
+            <input type="text" id="fullName" placeholder="Full Name" required class="w-full p-2 border rounded">
+            <input type="text" id="phoneNumber" placeholder="Phone Number" class="w-full p-2 border rounded">
+            <input type="email" id="email" placeholder="Email Address" required class="w-full p-2 border rounded">
+            <textarea id="profileStatement" placeholder="Short background profile details..." class="w-full p-2 border rounded"></textarea>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Submit Profile</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Alert Success Notification Toast -->
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-lg">
+        🎉 Application sent to backend API store folder successfully!
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+
+        // Load data on window load
+        window.addEventListener('DOMContentLoaded', fetchOpportunities);
+
+        async function fetchOpportunities() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/opportunities`);
+                const data = await response.json();
+                
+                renderGroup(data.skills, 'skills-container', 'Enroll Course');
+                renderGroup(data.internships, 'internships-container', 'Apply Internship');
+                renderGroup(data.jobs, 'jobs-container', 'Send Profile');
+            } catch (err) {
+                console.error("Failed to pool active records from server context:", err);
+            }
+        }
+
+        function renderGroup(items, containerId, actionLabel) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.map(item => `
+                <div class="card bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between" data-tags="${item.tags}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-semibold px-2 py-1 rounded bg-blue-50 text-blue-700">${item.type}</span>
+                            <span class="text-xs font-bold text-emerald-600">${item.cost}</span>
+                        </div>
+                        <h3 class="searchable font-bold text-gray-800 text-lg mb-1">${item.title}</h3>
+                        <p class="text-xs text-gray-500">${item.provider || item.company} • <i>${item.duration || item.location}</i></p>
+                    </div>
+                    <button onclick="openModal('${item.title}')" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg font-medium transition">${actionLabel}</button>
+                </div>
+            `).join('');
+        }
+
+        async function submitForm(e) {
+            e.preventDefault();
+            const payload = {
+                opportunityTitle: document.getElementById('modalTargetName').value,
+                fullName: document.getElementById('fullName').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                email: document.getElementById('email').value,
+                profileStatement: document.getElementById('profileStatement').value
+            };
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/apply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                    closeModal();
+                    showToast();
+                    e.target.reset();
+                }
+            } catch (err) {
+                alert("Network communication layout error.");
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('bg-blue-700'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById(`nav-${tabId}`).classList.add('bg-blue-700');
+        }
+
+        function openModal(title) {
+            document.getElementById('modalTargetName').value = title;
+            document.getElementById('applyModal').classList.replace('hidden', 'flex');
+        }
+        function closeModal() { document.getElementById('applyModal').classList.replace('flex', 'hidden'); }
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+        function filterCards() {
+            const q = document.getElementById('globalSearch').value.toLowerCase();
+            document.querySelectorAll('.card').forEach(card => {
+                const match = card.querySelector('.searchable').textContent.toLowerCase().includes(q) || card.getAttribute('data-tags').includes(q);
+                card.style.display = match ? 'flex' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
 
